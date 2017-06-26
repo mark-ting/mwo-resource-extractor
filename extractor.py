@@ -9,13 +9,14 @@ import os
 import zipfile
 import winreg
 from lxml import etree as ET
+import json
 
 # Ensure wdir is current
 abs_path = os.path.abspath(__file__)
 dir_name = os.path.dirname(abs_path)
 os.chdir(dir_name)
 
-from locations import gamedata_pak, weapon_file, mech_file, english_pak, localization_file,
+from locations import gamedata_pak, weapon_file, mech_file, english_pak, localization_file
 
 MWO_REG_KEY = 'SOFTWARE\\WOW6432Node\\Piranha Games\\Mechwarrior Online\\Production\\Install'
 
@@ -88,6 +89,18 @@ def map_mechs():
 
 if __name__ == '__main__':
     localizations = map_localizations()
+
+    # Export JSON
+    locale_json_file = 'out/locale.json'
+    if not os.path.exists(os.path.dirname(locale_json_file)):
+        try:
+            os.makedirs(os.path.dirname(locale_json_file))
+        except OSError as exc: # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise
+
+    with open('out/locale.json', 'w') as locale_json:
+        locale_json.write(json.dumps(map_localizations(), indent=2))
 
     print(localizations['kgc-000bs'])
     print(localizations['ml_desc'])
