@@ -87,8 +87,71 @@ def map_mechs():
 
     return mechs
 
+
+def map_weapons(localizations):
+    """
+    Return dictionary of weapons by ID.
+    """
+    weapons = {}
+
+    gamedata_path = os.path.join(get_game_dir(), gamedata_pak)
+    with zipfile.ZipFile(gamedata_path, 'r') as gamedata:
+        with gamedata.open(weapon_file[1]) as weapon_data:
+            WEAPON_TREE = ET.parse(weapon_data)
+            WEAPON_ROOT = WEAPON_TREE.getroot()
+
+            # TODO: need to use locale transform
+            for weapon in WEAPON_ROOT.iter('Weapon'):
+
+                if 'InheritFrom' in weapon.attrib:
+                    continue
+
+                weapon_stats = weapon.find('WeaponStats')
+                weapon_loc = weapon.find('Loc')
+
+                weapon_id = weapon.attrib['id']
+                weapon_name = localizations[weapon_loc.attrib['nameTag'][1:].lower()]
+                weapon_type = weapon_stats.attrib['type']
+
+                weapons[weapon_id] = {
+                    # Weapon details
+                    'id': weapon_id,
+                    'name':  weapon_name,
+                    'type': weapon_type,
+
+                    # Equipment stats
+                    'health': weapon_stats.attrib['Health'],
+                    'tons': weapon_stats.attrib['tons'],
+                    'slots': weapon_stats.attrib['slots'],
+
+                    # Weapon stats
+                    'damage': weapon_stats.attrib['damage'],
+                    'heat': weapon_stats.attrib['heat'],
+                    'duration': weapon_stats.attrib['duration'],
+                    'cooldown': weapon_stats.attrib['cooldown'],
+
+                    # Weapon behavior
+
+                    'velocity': weapon_stats.attrib['speed'],
+                    'count': weapon_stats.attrib['numFiring'],
+                    'delay': weapon_stats.attrib['volleydelay'],
+
+                    'minRange': weapon_stats.attrib['minRange'],
+                    'optRange': weapon_stats.attrib['longRange'],
+                    'maxRange': weapon_stats.attrib['maxRange'],
+
+                    # Ghost heat
+                    'penalty': weapon_stats.attrib['heatpenalty'] if 'heatpenalty' in weapon_stats.attrib else 0,
+                    'penaltyLimit': weapon_stats.attrib['minheatpenaltylevel'] if 'minheatpenaltylevel' in weapon_stats.attrib else 0,
+                    'penaltyGroup': weapon_stats.attrib['heatPenaltyID'] if 'heatPenaltyID' in weapon_stats.attrib else 0
+                }
+
+    return weapons
+
 if __name__ == '__main__':
+    # Extract data
     localizations = map_localizations()
+    weapons = map_weapons(localizations)
 
     # Export JSON
     locale_json_file = 'out/locale.json'
@@ -99,10 +162,17 @@ if __name__ == '__main__':
             if exc.errno != errno.EEXIST:
                 raise
 
-    with open('out/locale.json', 'w') as locale_json:
+    with open(locale_json_file, 'w') as locale_json:
         locale_json.write(json.dumps(map_localizations(), indent=2))
 
-    print(localizations['kgc-000bs'])
-    print(localizations['ml_desc'])
-    print(localizations['ac20_desc'])
-    print(map_mechs())
+    # Export weapon JSON
+    weapon_json_file = 'out/weapons.json'
+    if not os.path.exists(os.path.dirname(weapon_json_file)):
+        try:
+            os.makedirs(os.path.dirname(weapon_json_file))
+        except OSError as exc: # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise
+
+    with open(weapon_json_file, 'w') as weapon_json:
+        weapon_json.write(json.dumps(weapons, indent=2))
