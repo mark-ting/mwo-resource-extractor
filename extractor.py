@@ -98,7 +98,7 @@ def map_weapons(localizations):
 
                     # Equipment stats
                     'health': weapon_stats.attrib['Health'],
-                    'tons': weapon_stats.attrib['tons'],
+                    'weight': weapon_stats.attrib['tons'],
                     'slots': weapon_stats.attrib['slots'],
 
                     # Weapon stats
