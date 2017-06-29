@@ -64,30 +64,6 @@ def map_localizations():
     return localizations
 
 
-def map_mechs():
-    """
-    Return dictionary of mechs by ID.
-    """
-    mechs = {}
-
-    gamedata_path = os.path.join(get_game_dir(), gamedata_pak)
-    with zipfile.ZipFile(gamedata_path, 'r') as gamedata:
-        with gamedata.open(mech_file[1]) as mech_data:
-            MECH_TREE = ET.parse(mech_data)
-            MECH_ROOT = MECH_TREE.getroot()
-
-            # TODO: need to use locale transform
-            for mech in MECH_ROOT.iter('Mech'):
-                mech_id = mech.attrib['id']
-                mech_name = mech.attrib['name']
-                mech_chassis = mech.attrib['chassis']
-                mechs[mech_id] = {
-                    'name': mech_name
-                }
-
-    return mechs
-
-
 def map_weapons(localizations):
     """
     Return dictionary of weapons by ID.
@@ -103,6 +79,7 @@ def map_weapons(localizations):
             # TODO: need to use locale transform
             for weapon in WEAPON_ROOT.iter('Weapon'):
 
+                # Skip Artemis weapons with identical base stats
                 if 'InheritFrom' in weapon.attrib:
                     continue
 
@@ -131,27 +108,66 @@ def map_weapons(localizations):
                     'cooldown': weapon_stats.attrib['cooldown'],
 
                     # Weapon behavior
-
                     'velocity': weapon_stats.attrib['speed'],
                     'count': weapon_stats.attrib['numFiring'],
-                    'delay': weapon_stats.attrib['volleydelay'],
+                    'volleySize': weapon_stats.attrib['volleysize'] if 'volleysize' in weapon_stats.attrib else '1',
+                    'volleyDelay': weapon_stats.attrib['volleydelay'] if 'volleydelay' in weapon_stats.attrib else '0',
 
                     'minRange': weapon_stats.attrib['minRange'],
                     'optRange': weapon_stats.attrib['longRange'],
                     'maxRange': weapon_stats.attrib['maxRange'],
 
-                    # Ghost heat
-                    'penalty': weapon_stats.attrib['heatpenalty'] if 'heatpenalty' in weapon_stats.attrib else 0,
-                    'penaltyLimit': weapon_stats.attrib['minheatpenaltylevel'] if 'minheatpenaltylevel' in weapon_stats.attrib else 0,
-                    'penaltyGroup': weapon_stats.attrib['heatPenaltyID'] if 'heatPenaltyID' in weapon_stats.attrib else 0
+                    # Ghost heat (group 0 does not exist)
+                    'penalty': weapon_stats.attrib['heatpenalty'] if 'heatpenalty' in weapon_stats.attrib else '0',
+                    'penaltyLimit': weapon_stats.attrib['minheatpenaltylevel'] if 'minheatpenaltylevel' in weapon_stats.attrib else '0',
+                    'penaltyGroup': weapon_stats.attrib['heatPenaltyID'] if 'heatPenaltyID' in weapon_stats.attrib else '0'
                 }
 
     return weapons
 
-if __name__ == '__main__':
+
+def map_mechs(localizations):
+    """
+    Return dictionary of mechs by ID.
+    """
+    mechs = {}
+
+    gamedata_path = os.path.join(get_game_dir(), gamedata_pak)
+    with zipfile.ZipFile(gamedata_path, 'r') as gamedata:
+        with gamedata.open(mech_file[1]) as mech_data:
+            MECH_TREE = ET.parse(mech_data)
+            MECH_ROOT = MECH_TREE.getroot()
+
+            # TODO: need to use locale transform
+            for mech in MECH_ROOT.iter('Mech'):
+                # Skip lame escort mech
+                mech_name = mech.attrib['name']
+                if 'escort' in mech_name:
+                    continue
+
+                mech_id = mech.attrib['id']
+                mech_chassis = mech.attrib['chassis']
+
+                # Apply localizations
+                mech_full_name = localizations[mech_name]
+                mech_chassis = localizations[mech_chassis]
+                mech_variant = localizations[mech_name + '_short']
+
+                mechs[mech_id] = {
+                    'id': mech_id,
+                    'name': mech_full_name,
+                    'chassis': mech_chassis,
+                    'variant': mech_variant
+                }
+
+    return mechs
+
+
+def export_json():
     # Extract data
     localizations = map_localizations()
     weapons = map_weapons(localizations)
+    mechs = map_mechs(localizations)
 
     # Export JSON
     locale_json_file = 'out/locale.json'
@@ -176,3 +192,19 @@ if __name__ == '__main__':
 
     with open(weapon_json_file, 'w') as weapon_json:
         weapon_json.write(json.dumps(weapons, indent=2))
+
+    # Export mech JSON
+    mech_json_file = 'out/mechs.json'
+    if not os.path.exists(os.path.dirname(mech_json_file)):
+        try:
+            os.makedirs(os.path.dirname(mech_json_file))
+        except OSError as exc: # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise
+
+    with open(mech_json_file, 'w') as mech_json:
+        mech_json.write(json.dumps(mechs, indent=2))
+
+
+if __name__ == '__main__':
+    export_json()
