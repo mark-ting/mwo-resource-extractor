@@ -163,48 +163,28 @@ def map_mechs(localizations):
     return mechs
 
 
-def export_json():
+def export_json(filename, obj):
+    if not os.path.exists(os.path.dirname(filename)):
+        try:
+            os.makedirs(os.path.dirname(filename))
+        except OSError as exc: # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise
+
+    with open(filename, 'w') as json_file:
+        json_file.write(json.dumps(obj, indent=2))
+
+
+if __name__ == '__main__':
     # Extract data
     localizations = map_localizations()
     weapons = map_weapons(localizations)
     mechs = map_mechs(localizations)
 
-    # Export JSON
     locale_json_file = 'out/locale.json'
-    if not os.path.exists(os.path.dirname(locale_json_file)):
-        try:
-            os.makedirs(os.path.dirname(locale_json_file))
-        except OSError as exc: # Guard against race condition
-            if exc.errno != errno.EEXIST:
-                raise
-
-    with open(locale_json_file, 'w') as locale_json:
-        locale_json.write(json.dumps(map_localizations(), indent=2))
-
-    # Export weapon JSON
     weapon_json_file = 'out/weapons.json'
-    if not os.path.exists(os.path.dirname(weapon_json_file)):
-        try:
-            os.makedirs(os.path.dirname(weapon_json_file))
-        except OSError as exc: # Guard against race condition
-            if exc.errno != errno.EEXIST:
-                raise
-
-    with open(weapon_json_file, 'w') as weapon_json:
-        weapon_json.write(json.dumps(weapons, indent=2))
-
-    # Export mech JSON
     mech_json_file = 'out/mechs.json'
-    if not os.path.exists(os.path.dirname(mech_json_file)):
-        try:
-            os.makedirs(os.path.dirname(mech_json_file))
-        except OSError as exc: # Guard against race condition
-            if exc.errno != errno.EEXIST:
-                raise
 
-    with open(mech_json_file, 'w') as mech_json:
-        mech_json.write(json.dumps(mechs, indent=2))
-
-
-if __name__ == '__main__':
-    export_json()
+    export_json(locale_json_file, localizations)
+    export_json(weapon_json_file, weapons)
+    export_json(mech_json_file, mechs)
