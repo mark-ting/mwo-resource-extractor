@@ -89,12 +89,14 @@ def map_weapons(localizations):
                 weapon_id = weapon.attrib['id']
                 weapon_name = localizations[weapon_loc.attrib['nameTag'][1:].lower()]
                 weapon_type = weapon_stats.attrib['type']
+                weapon_faction = weapon.attrib['faction']
 
                 weapons[weapon_id] = {
                     # Weapon details
                     'id': weapon_id,
                     'name':  weapon_name,
                     'type': weapon_type,
+                    'faction': weapon_faction,
 
                     # Equipment stats
                     'health': weapon_stats.attrib['Health'],
