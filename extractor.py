@@ -179,10 +179,8 @@ def map_equipment(localizations):
 
             # Note: child elements named "Module", not "Equipment"
             for module in EQUIPMENT_ROOT.iter('Module'):
-
-                module_loc = module.find('Loc')
-
                 module_id = module.attrib['id']
+                module_loc = module.find('Loc')
                 module_name = localizations[module_loc.attrib['nameTag'][1:].lower()]
 
                 equipment[module_id] = {
@@ -191,6 +189,43 @@ def map_equipment(localizations):
                 }
 
     return equipment
+
+
+def map_heat_sinks(localizations):
+    """
+    Return dictionary of heat_sinks by ID.
+    """
+    heat_sinks = {}
+
+    gamedata_path = os.path.join(get_game_dir(), gamedata_pak)
+    with zipfile.ZipFile(gamedata_path, 'r') as gamedata:
+        with gamedata.open(equipment_file[1]) as equipment_data:
+            EQUIPMENT_TREE = ET.parse(equipment_data)
+            EQUIPMENT_ROOT = EQUIPMENT_TREE.getroot()
+            HEAT_SINK_NODES = EQUIPMENT_ROOT.xpath('//Module[@CType="CHeatSinkStats"]')
+
+            # Note: child elements named "Module", not "Equipment"
+            for hs in HEAT_SINK_NODES:
+                hs_id = hs.attrib['id']
+                hs_loc = hs.find('Loc')
+                hs_name = localizations[hs_loc.attrib['nameTag'][1:].lower()]
+                hs_faction = hs.attrib['faction']
+
+                hs_stats = hs.find('HeatSinkStats')
+                hs_capacity = hs_stats.attrib['heatbase']
+                hs_internal_delta = hs_stats.attrib['engineCooling']
+                hs_external_delta = hs_stats.attrib['cooling']
+
+                heat_sinks[hs_id] = {
+                    'id': hs_id,
+                    'name':  hs_name,
+                    'faction': hs_faction,
+                    'capacity': hs_capacity,
+                    'internalDelta': hs_internal_delta,
+                    'externalDelta': hs_external_delta
+                }
+
+    return heat_sinks
 
 
 def export_json(filename, obj):
@@ -211,13 +246,16 @@ if __name__ == '__main__':
     weapons = map_weapons(localizations)
     mechs = map_mechs(localizations)
     equipment = map_equipment(localizations)
+    heat_sinks = map_heat_sinks(localizations)
 
     locale_json_file = 'out/locale.json'
     weapon_json_file = 'out/weapons.json'
     mech_json_file = 'out/mechs.json'
     equipment_json_file = 'out/equipment.json'
+    heat_sink_json_file = 'out/heatsinks.json'
 
     export_json(locale_json_file, localizations)
     export_json(weapon_json_file, weapons)
     export_json(mech_json_file, mechs)
     export_json(equipment_json_file, equipment)
+    export_json(heat_sink_json_file, heat_sinks)
