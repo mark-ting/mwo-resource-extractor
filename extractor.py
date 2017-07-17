@@ -16,7 +16,7 @@ abs_path = os.path.abspath(__file__)
 dir_name = os.path.dirname(abs_path)
 os.chdir(dir_name)
 
-from locations import gamedata_pak, weapon_file, mech_file, english_pak, localization_file
+from locations import gamedata_pak, weapon_file, mech_file, equipment_file, english_pak, localization_file
 
 MWO_REG_KEY = 'SOFTWARE\\WOW6432Node\\Piranha Games\\Mechwarrior Online\\Production\\Install'
 
@@ -165,6 +165,34 @@ def map_mechs(localizations):
     return mechs
 
 
+def map_equipment(localizations):
+    """
+    Return dictionary of equipment by ID.
+    """
+    equipment = {}
+
+    gamedata_path = os.path.join(get_game_dir(), gamedata_pak)
+    with zipfile.ZipFile(gamedata_path, 'r') as gamedata:
+        with gamedata.open(equipment_file[1]) as equipment_data:
+            EQUIPMENT_TREE = ET.parse(equipment_data)
+            EQUIPMENT_ROOT = EQUIPMENT_TREE.getroot()
+
+            # Note: child elements named "Module", not "Equipment"
+            for module in EQUIPMENT_ROOT.iter('Module'):
+
+                module_loc = module.find('Loc')
+
+                module_id = module.attrib['id']
+                module_name = localizations[module_loc.attrib['nameTag'][1:].lower()]
+
+                equipment[module_id] = {
+                    'id': module_id,
+                    'name': module_name
+                }
+
+    return equipment
+
+
 def export_json(filename, obj):
     if not os.path.exists(os.path.dirname(filename)):
         try:
@@ -182,11 +210,14 @@ if __name__ == '__main__':
     localizations = map_localizations()
     weapons = map_weapons(localizations)
     mechs = map_mechs(localizations)
+    equipment = map_equipment(localizations)
 
     locale_json_file = 'out/locale.json'
     weapon_json_file = 'out/weapons.json'
     mech_json_file = 'out/mechs.json'
+    equipment_json_file = 'out/equipment.json'
 
     export_json(locale_json_file, localizations)
     export_json(weapon_json_file, weapons)
     export_json(mech_json_file, mechs)
+    export_json(equipment_json_file, equipment)
