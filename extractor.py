@@ -83,12 +83,25 @@ def map_weapons(localizations):
                 if 'InheritFrom' in weapon.attrib:
                     continue
 
-                weapon_stats = weapon.find('WeaponStats')
-                weapon_loc = weapon.find('Loc')
+                weapon_loc_node = weapon.find('Loc')
+                weapon_stats_node = weapon.find('WeaponStats')
+                weapon_ranges_node = weapon.find('Ranges')
+
+                weapon_ranges = {}
+
+                for range_point in weapon_ranges_node:
+                    range_start = range_point.attrib['start']
+                    range_modifier = range_point.attrib['damageModifier']
+                    range_interpolation = range_point.attrib['interpolationToNextRange']
+
+                    weapon_ranges[range_start] = {
+                        'modifier': range_modifier,
+                        'interpolation':  range_interpolation
+                    }
 
                 weapon_id = weapon.attrib['id']
-                weapon_name = localizations[weapon_loc.attrib['nameTag'][1:].lower()]
-                weapon_type = weapon_stats.attrib['type']
+                weapon_name = localizations[weapon_loc_node.attrib['nameTag'][1:].lower()]
+                weapon_type = weapon_stats_node.attrib['type']
                 weapon_faction = weapon.attrib['faction']
 
                 weapons[weapon_id] = {
@@ -99,30 +112,28 @@ def map_weapons(localizations):
                     'faction': weapon_faction,
 
                     # Equipment stats
-                    'health': weapon_stats.attrib['Health'],
-                    'weight': weapon_stats.attrib['tons'],
-                    'slots': weapon_stats.attrib['slots'],
+                    'health': weapon_stats_node.attrib['Health'],
+                    'weight': weapon_stats_node.attrib['tons'],
+                    'slots': weapon_stats_node.attrib['slots'],
 
                     # Weapon stats
-                    'damage': weapon_stats.attrib['damage'],
-                    'heat': weapon_stats.attrib['heat'],
-                    'duration': weapon_stats.attrib['duration'],
-                    'cooldown': weapon_stats.attrib['cooldown'],
+                    'damage': weapon_stats_node.attrib['damage'],
+                    'heat': weapon_stats_node.attrib['heat'],
+                    'duration': weapon_stats_node.attrib['duration'],
+                    'cooldown': weapon_stats_node.attrib['cooldown'],
 
                     # Weapon behavior
-                    'velocity': weapon_stats.attrib['speed'],
-                    'count': weapon_stats.attrib['numFiring'],
-                    'volleySize': weapon_stats.attrib['volleysize'] if 'volleysize' in weapon_stats.attrib else '1',
-                    'volleyDelay': weapon_stats.attrib['volleydelay'] if 'volleydelay' in weapon_stats.attrib else '0',
+                    'velocity': weapon_stats_node.attrib['speed'],
+                    'count': weapon_stats_node.attrib['numFiring'],
+                    'volleySize': weapon_stats_node.attrib['volleysize'] if 'volleysize' in weapon_stats_node.attrib else '1',
+                    'volleyDelay': weapon_stats_node.attrib['volleydelay'] if 'volleydelay' in weapon_stats_node.attrib else '0',
 
-                    'minRange': weapon_stats.attrib['minRange'],
-                    'optRange': weapon_stats.attrib['longRange'],
-                    'maxRange': weapon_stats.attrib['maxRange'],
+                    'ranges': weapon_ranges,
 
                     # Ghost heat (group 0 does not exist)
-                    'penalty': weapon_stats.attrib['heatpenalty'] if 'heatpenalty' in weapon_stats.attrib else '0',
-                    'penaltyLimit': weapon_stats.attrib['minheatpenaltylevel'] if 'minheatpenaltylevel' in weapon_stats.attrib else '0',
-                    'penaltyGroup': weapon_stats.attrib['heatPenaltyID'] if 'heatPenaltyID' in weapon_stats.attrib else '0'
+                    'penalty': weapon_stats_node.attrib['heatpenalty'] if 'heatpenalty' in weapon_stats_node.attrib else '0',
+                    'penaltyLimit': weapon_stats_node.attrib['minheatpenaltylevel'] if 'minheatpenaltylevel' in weapon_stats_node.attrib else '0',
+                    'penaltyGroup': weapon_stats_node.attrib['heatPenaltyID'] if 'heatPenaltyID' in weapon_stats_node.attrib else '0'
                 }
 
     return weapons
